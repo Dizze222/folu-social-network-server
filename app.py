@@ -44,19 +44,22 @@ def getDataFromCLient():
                 x = array[i]
                 for j in range(i + 1, len(array)):
                     y = array[j]
+                    print(y)
                     if not x or not y:
                         continue
-                    elif x['idPhotographer'] == y['idPhotographer']:
-                        if x['like'] < y['like']:
-                            x.clear()
+                    if x['idPhotographer'] == y['idPhotographer']:
+                        a = x['like'] + y['like']
+                        if a > 0 or a == 0:
+                            x['like'] = a
                         else:
-                            y.clear()
+                            print("лайков слишком мало")
+                        y.clear()
             array = [x for x in array if x]
-            print(array)
         except Exception as error:
             print(error)
         return jsonify(array)
     if request.method == 'POST':
+        print("post")
         try:
             articles = Article.query.order_by(Article.like).all()
             idPhotographer = int(request.form['idPhotographer'])
