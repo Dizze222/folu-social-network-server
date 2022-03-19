@@ -19,6 +19,7 @@ class Article(db.Model):
     url = db.Column(db.String, nullable=False)
     like = db.Column(db.Integer, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
+    comments = db.Column(db.String, default=False)
 
     def __repr__(self):
         return '<Article %r' % self.id
@@ -27,16 +28,19 @@ class Article(db.Model):
 @app.route('/posts', methods=['GET', 'POST'])
 def getDataFromCLient():
     array = []
+    arrayOfComment = []
     if request.method == 'GET':
         articles = Article.query.order_by(Article.date).all()
         for i in articles:
+            arrayOfComment.append(str(i.comments))
             array.append(
                 {
                     'idPhotographer': int(i.idPhotographer),
                     'author': str(i.author),
                     'url': str(i.url),
                     'theme': str(i.theme),
-                    'like': int(i.like)
+                    'like': int(i.like),
+                    'comments': arrayOfComment
                 }
             )
         try:
@@ -67,7 +71,9 @@ def getDataFromCLient():
             url = str(request.form['url'])
             theme = str(request.form['theme'])
             like = int(request.form['like'])
-            article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like)
+            comments = str(request.form['comments'])
+            article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
+                              comments=comments)
             for i in articles:
                 if int(i.idPhotographer) == int(idPhotographer) and str(i.author) == str(author) and str(i.url) == str(
                         url) and str(i.theme) == str(theme):
@@ -75,7 +81,7 @@ def getDataFromCLient():
             db.session.add(article)
             db.session.commit()
         except Exception:
-            print(Exception)
+
             return "Error"
 
 
@@ -87,7 +93,9 @@ def create_article():
         url = str(request.form['url'])
         theme = str(request.form['theme'])
         like = int(request.form['like'])
-        article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like)
+        comments = str(request.form['comments'])
+        article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
+                          comments=comments)
         db.session.add(article)
         db.session.commit()
         return redirect('posts')

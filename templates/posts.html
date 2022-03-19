@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}
+All data
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h1>All data</h1>
+
+    {% for i in article%}
+    <div class ="alert alert-info">
+        <h2>author: {{i.author}}</h2>
+        <h2>id: {{i.idPhotographer}}</h2>
+        <h4>theme:{{i.theme}}</h4>
+        <p><b>Date: {{i.date.date()}}</b></p>
+        <a href="/dfgfdsc/{{i.id}}/del" class="btn btn-danger">DELETE</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
