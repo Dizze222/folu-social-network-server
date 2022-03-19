@@ -30,6 +30,7 @@ def getDataFromCLient():
     array = []
     arrayOfComment = []
     if request.method == 'GET':
+
         articles = Article.query.order_by(Article.date).all()
         for i in articles:
             arrayOfComment.append(str(i.comments))
