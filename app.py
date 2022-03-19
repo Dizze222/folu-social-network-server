@@ -1,3 +1,6 @@
+import array
+from collections import defaultdict
+
 import flask_sqlalchemy
 from sqlalchemy.dialects.sqlite import BLOB
 from flask import Flask, render_template, request, redirect
@@ -19,20 +22,26 @@ class Article(db.Model):
     url = db.Column(db.String, nullable=False)
     like = db.Column(db.Integer, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
-    comments = db.Column(db.String, default=False)
+    comments = db.Column(db.JSON, default=False)
 
     def __repr__(self):
         return '<Article %r' % self.id
 
+
+test = {0: ["круто", "классно"], 1: ["не самое удачное фото", "ну такое"]}
+
+testTwo = defaultdict(list)
 
 @app.route('/posts', methods=['GET', 'POST'])
 def getDataFromCLient():
     array = []
     arrayOfComment = []
     if request.method == 'GET':
-
         articles = Article.query.order_by(Article.date).all()
+
         for i in articles:
+            i.comments = test
+
             arrayOfComment.append(str(i.comments))
             array.append(
                 {
@@ -41,7 +50,7 @@ def getDataFromCLient():
                     'url': str(i.url),
                     'theme': str(i.theme),
                     'like': int(i.like),
-                    'comments': arrayOfComment
+                    'comments': testTwo[i.idPhotographer]
                 }
             )
         try:
@@ -49,7 +58,6 @@ def getDataFromCLient():
                 x = array[i]
                 for j in range(i + 1, len(array)):
                     y = array[j]
-                    print(y)
                     if not x or not y:
                         continue
                     if x['idPhotographer'] == y['idPhotographer']:
@@ -73,6 +81,7 @@ def getDataFromCLient():
             theme = str(request.form['theme'])
             like = int(request.form['like'])
             comments = str(request.form['comments'])
+
             article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
                               comments=comments)
             for i in articles:
@@ -89,12 +98,17 @@ def getDataFromCLient():
 @app.route('/', methods=['POST', 'GET'])
 def create_article():
     if request.method == "POST":
+
         idPhotographer = int(request.form['idPhotographer'])
         author = str(request.form['author'])
         url = str(request.form['url'])
         theme = str(request.form['theme'])
         like = int(request.form['like'])
         comments = str(request.form['comments'])
+        print(idPhotographer)
+
+        testTwo[idPhotographer].append(comments)
+
         article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
                           comments=comments)
         db.session.add(article)
