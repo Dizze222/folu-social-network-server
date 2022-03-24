@@ -36,6 +36,7 @@ def getDataFromCLient():
     if request.method == 'GET':
         articles = Article.query.order_by(Article.date).all()
         for i in articles:
+
             test[i.idPhotographer] += i.comments.values()
         print(test)
         for i in articles:
