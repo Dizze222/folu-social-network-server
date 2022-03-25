@@ -32,13 +32,21 @@ testTwo = defaultdict(list)
 @app.route('/posts', methods=['GET', 'POST'])
 def getDataFromCLient():
     array = []
+    authorOfComments = {0: ["Denis","Igor"],1:["Maria","Lena"]}
     test = defaultdict(list)
+
     if request.method == 'GET':
         articles = Article.query.order_by(Article.date).all()
         for i in articles:
-
             test[i.idPhotographer] += i.comments.values()
-        print(test)
+
+        actual = defaultdict(list)
+        count = 0
+        for j in test.values():
+            print(j)
+            actual[count] = j
+            count += 1
+        print(actual)
         for i in articles:
             array.append(
                 {
@@ -47,7 +55,8 @@ def getDataFromCLient():
                     'url': str(i.url),
                     'theme': str(i.theme),
                     'like': int(i.like),
-                    'comments': test[i.idPhotographer]
+                    'comments': testTwo[i.idPhotographer],
+                    'authorOfComments': authorOfComments[i.idPhotographer]
                 }
             )
         try:
