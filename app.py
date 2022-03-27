@@ -33,20 +33,9 @@ testTwo = defaultdict(list)
 def getDataFromCLient():
     array = []
     authorOfComments = {0: ["Denis","Igor"],1:["Maria","Lena"]}
-    test = defaultdict(list)
 
     if request.method == 'GET':
         articles = Article.query.order_by(Article.date).all()
-        for i in articles:
-            test[i.idPhotographer] += i.comments.values()
-
-        actual = defaultdict(list)
-        count = 0
-        for j in test.values():
-            print(j)
-            actual[count] = j
-            count += 1
-        print(actual)
         for i in articles:
             array.append(
                 {
@@ -55,7 +44,7 @@ def getDataFromCLient():
                     'url': str(i.url),
                     'theme': str(i.theme),
                     'like': int(i.like),
-                    'comments': testTwo[i.idPhotographer],
+                    'comments': i.comments[f'{i.idPhotographer}'],
                     'authorOfComments': authorOfComments[i.idPhotographer]
                 }
             )
@@ -68,6 +57,10 @@ def getDataFromCLient():
                         continue
                     if x['idPhotographer'] == y['idPhotographer']:
                         a = x['like'] + y['like']
+                        b = x['comments']
+                        c = y['comments']
+                        if len(c) > len(b):
+                            x['comments'] = c
                         if a > 0 or a == 0:
                             x['like'] = a
                         else:
@@ -80,7 +73,6 @@ def getDataFromCLient():
     if request.method == 'POST':
         print("post")
         try:
-            articles = Article.query.order_by(Article.like).all()
             idPhotographer = int(request.form['idPhotographer'])
             author = str(request.form['author'])
             url = str(request.form['url'])
@@ -89,15 +81,10 @@ def getDataFromCLient():
             comments = str(request.form['comments'])
             testTwo[idPhotographer].append(comments)
             article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
-                              comments=comments)
-            for i in articles:
-                if int(i.idPhotographer) == int(idPhotographer) and str(i.author) == str(author) and str(i.url) == str(
-                        url) and str(i.theme) == str(theme):
-                    print("СОВПАЛО")
+                              comments=testTwo)
             db.session.add(article)
             db.session.commit()
         except Exception:
-
             return "Error"
 
 
