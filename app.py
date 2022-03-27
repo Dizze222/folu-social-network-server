@@ -21,18 +21,19 @@ class Article(db.Model):
     like = db.Column(db.Integer, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.Column(db.JSON, nullable=False)
+    authorOfComments = db.Column(db.JSON, nullable=False)
 
     def __repr__(self):
         return '<Article %r' % self.id
 
 
 testTwo = defaultdict(list)
+testAuthorOfComments = defaultdict(list)
 
 
 @app.route('/posts', methods=['GET', 'POST'])
 def getDataFromCLient():
     array = []
-    authorOfComments = {0: ["Denis","Igor"],1:["Maria","Lena"]}
 
     if request.method == 'GET':
         articles = Article.query.order_by(Article.date).all()
@@ -45,7 +46,7 @@ def getDataFromCLient():
                     'theme': str(i.theme),
                     'like': int(i.like),
                     'comments': i.comments[f'{i.idPhotographer}'],
-                    'authorOfComments': authorOfComments[i.idPhotographer]
+                    'authorOfComments': i.authorOfComments[f'{i.idPhotographer}']
                 }
             )
         try:
@@ -57,10 +58,17 @@ def getDataFromCLient():
                         continue
                     if x['idPhotographer'] == y['idPhotographer']:
                         a = x['like'] + y['like']
-                        b = x['comments']
-                        c = y['comments']
-                        if len(c) > len(b):
-                            x['comments'] = c
+
+                        arrayOfCommentsOne = x['comments']
+                        arrayOfCommentsTwo = y['comments']
+
+                        arrayOfAuthorOfCommentsOne = x['authorOfComments']
+                        arrayOfAuthorOfCommentsTwo = y['authorOfComments']
+
+                        if len(arrayOfAuthorOfCommentsTwo) > len(arrayOfAuthorOfCommentsOne):
+                            x['authorOfComments'] = arrayOfAuthorOfCommentsTwo
+                        if len(arrayOfCommentsTwo) > len(arrayOfCommentsOne):
+                            x['comments'] = arrayOfCommentsTwo
                         if a > 0 or a == 0:
                             x['like'] = a
                         else:
@@ -78,10 +86,12 @@ def getDataFromCLient():
             url = str(request.form['url'])
             theme = str(request.form['theme'])
             like = int(request.form['like'])
-            comments = str(request.form['comments'])
+            comments = request.form['comments']
+            authorOfComments = request.form['authorOfComments']
             testTwo[idPhotographer].append(comments)
+            testAuthorOfComments[idPhotographer].append(authorOfComments)
             article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
-                              comments=testTwo)
+                              comments=testTwo, authorOfComments=testAuthorOfComments)
             db.session.add(article)
             db.session.commit()
         except Exception:
@@ -98,9 +108,11 @@ def create_article():
         theme = str(request.form['theme'])
         like = int(request.form['like'])
         comments = request.form['comments']
+        authorOfComments = request.form['authorOfComments']
         testTwo[idPhotographer].append(comments)
+        testAuthorOfComments[idPhotographer].append(authorOfComments)
         article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
-                          comments=testTwo)
+                          comments=testTwo, authorOfComments=testAuthorOfComments)
         db.session.add(article)
         db.session.commit()
         return redirect('posts')
