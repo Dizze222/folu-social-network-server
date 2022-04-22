@@ -27,6 +27,8 @@ class Article(db.Model):
         return '<Article %r' % self.id
 
 
+
+
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
 
@@ -94,8 +96,55 @@ def getDataFromCLient():
                               comments=testTwo, authorOfComments=testAuthorOfComments)
             db.session.add(article)
             db.session.commit()
-        except Exception:
-            return "Error"
+        except Exception as e:
+            return e
+
+@app.route('/posts/<int:id>')
+def visibleData(id):
+    arrayForVisibleData = []
+    articles = Article.query.order_by(Article.date).all()
+    for i in articles:
+        if id == i.idPhotographer:
+            arrayForVisibleData.append(
+                {
+                    'idPhotographer': int(i.idPhotographer),
+                    'author': str(i.author),
+                    'url': str(i.url),
+                    'theme': str(i.theme),
+                    'like': int(i.like),
+                    'comments': i.comments[f'{i.idPhotographer}'],
+                    'authorOfComments': i.authorOfComments[f'{i.idPhotographer}']
+                }
+            )
+    try:
+        for i in range(len(arrayForVisibleData) - 1):
+            x = arrayForVisibleData[i]
+            for j in range(i + 1, len(arrayForVisibleData)):
+                y = arrayForVisibleData[j]
+                if not x or not y:
+                    continue
+                if x['idPhotographer'] == y['idPhotographer']:
+                    a = x['like'] + y['like']
+
+                    arrayOfCommentsOne = x['comments']
+                    arrayOfCommentsTwo = y['comments']
+
+                    arrayOfAuthorOfCommentsOne = x['authorOfComments']
+                    arrayOfAuthorOfCommentsTwo = y['authorOfComments']
+
+                    if len(arrayOfAuthorOfCommentsTwo) > len(arrayOfAuthorOfCommentsOne):
+                        x['authorOfComments'] = arrayOfAuthorOfCommentsTwo
+                    if len(arrayOfCommentsTwo) > len(arrayOfCommentsOne):
+                        x['comments'] = arrayOfCommentsTwo
+                    if a > 0 or a == 0:
+                        x['like'] = a
+                    else:
+                        print("лайков слишком мало")
+                    y.clear()
+        arrayForVisibleData = [x for x in arrayForVisibleData if x]
+    except Exception as error:
+        print(error)
+    return jsonify(arrayForVisibleData)
 
 
 @app.route('/', methods=['POST', 'GET'])
