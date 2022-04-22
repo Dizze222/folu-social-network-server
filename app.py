@@ -99,6 +99,7 @@ def getDataFromCLient():
         except Exception as e:
             return e
 
+
 @app.route('/posts/<int:id>')
 def visibleData(id):
     arrayForVisibleData = []
