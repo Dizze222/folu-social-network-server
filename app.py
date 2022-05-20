@@ -3,12 +3,29 @@ import flask_sqlalchemy
 from sqlalchemy.dialects.sqlite import BLOB
 from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
+import jwt
 from flask import jsonify
+import graphene
+from graphene_sqlalchemy import SQLAlchemyObjectType, SQLAlchemyConnectionField
+from flask_graphql import GraphQLView
 from datetime import datetime
+from flask_graphql_auth import (
+    AuthInfoField,
+    GraphQLAuth,
+    get_jwt_identity,
+    create_access_token,
+    create_refresh_token,
+    query_header_jwt_required,
+    mutation_jwt_refresh_token_required,
+    mutation_jwt_required
+)
+
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'gtrhyjtuirbjvfklsajncwfghjkvf738vgfd923wdjkgh'
+app.config["JWT_SECRET_KEY"] = "rkenjg9wsi0w987t6wjxnkschbvfueiwdjsqxihuef847"
 db = SQLAlchemy(app)
 
 
@@ -27,14 +44,12 @@ class Article(db.Model):
         return '<Article %r' % self.id
 
 
-
-
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
 
 
 @app.route('/posts', methods=['GET', 'POST'])
-def getDataFromCLient():
+def getDataFromClient():
     array = []
 
     if request.method == 'GET':
@@ -101,7 +116,7 @@ def getDataFromCLient():
 
 
 @app.route('/posts/<int:id>')
-def visibleData(id):
+def visibleByData(id):
     arrayForVisibleData = []
     articles = Article.query.order_by(Article.date).all()
     for i in articles:
