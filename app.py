@@ -1,35 +1,30 @@
 from collections import defaultdict
-import flask_sqlalchemy
-from sqlalchemy.dialects.sqlite import BLOB
+from ctypes import Union
+
 from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
-import jwt
 from flask import jsonify
-import graphene
-from graphene_sqlalchemy import SQLAlchemyObjectType, SQLAlchemyConnectionField
-from flask_graphql import GraphQLView
 from datetime import datetime
-from flask_graphql_auth import (
-    AuthInfoField,
-    GraphQLAuth,
-    get_jwt_identity,
-    create_access_token,
-    create_refresh_token,
-    query_header_jwt_required,
-    mutation_jwt_refresh_token_required,
-    mutation_jwt_required
-)
-
+from datetime import timezone
+from datetime import timedelta
+from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
+from flask_jwt_extended import set_access_cookies
+from flask_jwt_extended import unset_jwt_cookies
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_COOKIE_SECURE"] = False
 app.config['SECRET_KEY'] = 'gtrhyjtuirbjvfklsajncwfghjkvf738vgfd923wdjkgh'
 app.config["JWT_SECRET_KEY"] = "rkenjg9wsi0w987t6wjxnkschbvfueiwdjsqxihuef847"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+
 db = SQLAlchemy(app)
 
+jwt = JWTManager(app)
 
-class Article(db.Model):
+
+class PhotographerModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     theme = db.Column(db.String, nullable=False)
     idPhotographer = db.Column(db.Integer, nullable=False)
@@ -40,12 +35,40 @@ class Article(db.Model):
     comments = db.Column(db.JSON, nullable=False)
     authorOfComments = db.Column(db.JSON, nullable=False)
 
-    def __repr__(self):
-        return '<Article %r' % self.id
+
+class RegisterUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phoneNumber = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    secondName = db.Column(db.String, nullable=False)
+    password = db.Column(db.String, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class LogInUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phoneNumber = db.Column(db.Integer, nullable=False)
+    password = db.Column(db.Integer, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    response = jsonify({"msg": "login successful"})
+    access_token = create_access_token(identity="example_user")
+    set_access_cookies(response, access_token)
+    return response
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    response = jsonify({"msg": "logout successful"})
+    unset_jwt_cookies(response)
+    return response
 
 
 @app.route('/posts', methods=['GET', 'POST'])
@@ -53,8 +76,8 @@ def getDataFromClient():
     array = []
 
     if request.method == 'GET':
-        articles = Article.query.order_by(Article.date).all()
-        for i in articles:
+        model = PhotographerModel.query.order_by(PhotographerModel.date).all()
+        for i in model:
             array.append(
                 {
                     'idPhotographer': int(i.idPhotographer),
@@ -107,8 +130,8 @@ def getDataFromClient():
             authorOfComments = request.form['authorOfComments']
             testTwo[idPhotographer].append(comments)
             testAuthorOfComments[idPhotographer].append(authorOfComments)
-            article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
-                              comments=testTwo, authorOfComments=testAuthorOfComments)
+            article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
+                                        comments=testTwo, authorOfComments=testAuthorOfComments)
             db.session.add(article)
             db.session.commit()
         except Exception as e:
@@ -118,7 +141,7 @@ def getDataFromClient():
 @app.route('/posts/<int:id>')
 def visibleByData(id):
     arrayForVisibleData = []
-    articles = Article.query.order_by(Article.date).all()
+    articles = PhotographerModel.query.order_by(PhotographerModel.date).all()
     for i in articles:
         if id == i.idPhotographer:
             arrayForVisibleData.append(
@@ -166,7 +189,6 @@ def visibleByData(id):
 @app.route('/', methods=['POST', 'GET'])
 def create_article():
     if request.method == "POST":
-
         idPhotographer = int(request.form['idPhotographer'])
         author = str(request.form['author'])
         url = str(request.form['url'])
@@ -176,13 +198,47 @@ def create_article():
         authorOfComments = request.form['authorOfComments']
         testTwo[idPhotographer].append(comments)
         testAuthorOfComments[idPhotographer].append(authorOfComments)
-        article = Article(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
-                          comments=testTwo, authorOfComments=testAuthorOfComments)
-        db.session.add(article)
+        model = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
+                                  comments=testTwo, authorOfComments=testAuthorOfComments)
+        db.session.add(model)
         db.session.commit()
         return redirect('posts')
     else:
         return render_template("create-article.html")
+
+
+@app.route('/register', methods=['POST'])
+def register_user():
+    try:
+        phoneNumber = int(request.form['phoneNumber'])
+        name = str(request.form['name'])
+        secondName = str(request.form['secondName'])
+        password = str(request.form['password'])
+        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=15), fresh=True)
+        refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
+        modelOfRegister = RegisterUser(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
+        db.session.add(modelOfRegister)
+        db.session.commit()
+        return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken})
+    except Exception as error:
+        print(error)
+        return "error"
+
+
+@app.route('/loginMy', methods=['POST'])
+def login_user():
+    try:
+        phoneNumber = int(request.form['phoneNumber'])
+        password = str(request.form['password'])
+        model = RegisterUser.query.order_by(RegisterUser.date).all()
+        for i in model:
+            if password == str(i.password) and phoneNumber == int(i.phoneNumber):
+                accessToken = create_access_token(identity=phoneNumber,expires_delta=timedelta(minutes=15),fresh=True)
+                refreshToken = create_refresh_token(identity=phoneNumber,expires_delta=timedelta(days=30))
+                return jsonify({'accessToken':accessToken,'refreshToken':refreshToken})
+    except Exception as error:
+        print(error)
+        return "some exeption"
 
 
 if __name__ == "__main__":
