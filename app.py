@@ -10,17 +10,14 @@ from datetime import timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 from flask_jwt_extended import set_access_cookies
 from flask_jwt_extended import unset_jwt_cookies
-
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config["JWT_COOKIE_SECURE"] = False
-app.config['SECRET_KEY'] = 'gtrhyjtuirbjvfklsajncwfghjkvf738vgfd923wdjkgh'
-app.config["JWT_SECRET_KEY"] = "rkenjg9wsi0w987t6wjxnkschbvfueiwdjsqxihuef847"
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-
+app.config['SECRET_KEY'] = 'my-super-secret-key'
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=5)
 db = SQLAlchemy(app)
-
 jwt = JWTManager(app)
 
 
@@ -214,6 +211,8 @@ def register_user():
         name = str(request.form['name'])
         secondName = str(request.form['secondName'])
         password = str(request.form['password'])
+        print(phoneNumber, name, secondName, password)
+
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=15), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = RegisterUser(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
@@ -230,15 +229,26 @@ def login_user():
     try:
         phoneNumber = int(request.form['phoneNumber'])
         password = str(request.form['password'])
+        print(phoneNumber, password)
         model = RegisterUser.query.order_by(RegisterUser.date).all()
         for i in model:
+            print(i.password)
             if password == str(i.password) and phoneNumber == int(i.phoneNumber):
-                accessToken = create_access_token(identity=phoneNumber,expires_delta=timedelta(minutes=15),fresh=True)
-                refreshToken = create_refresh_token(identity=phoneNumber,expires_delta=timedelta(days=30))
-                return jsonify({'accessToken':accessToken,'refreshToken':refreshToken})
+                accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
+                refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
+                return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken, 'success': True})
+        else:
+            return jsonify({'accessToken': None, 'refreshToken': None, 'success': False})
     except Exception as error:
         print(error)
         return "some exeption"
+
+
+@app.route('/protectedMy',methods=['GET'])
+@jwt_required()
+def protected():
+    currentUser = get_jwt_identity()
+    return jsonify(logged_in_as=currentUser)
 
 
 if __name__ == "__main__":
