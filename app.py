@@ -12,6 +12,7 @@ from flask_jwt_extended import set_access_cookies
 from flask_jwt_extended import unset_jwt_cookies
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -39,13 +40,6 @@ class RegisterUser(db.Model):
     name = db.Column(db.String, nullable=False)
     secondName = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
-
-
-class LogInUser(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    phoneNumber = db.Column(db.Integer, nullable=False)
-    password = db.Column(db.Integer, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -213,7 +207,7 @@ def register_user():
         password = str(request.form['password'])
         print(phoneNumber, name, secondName, password)
 
-        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=15), fresh=True)
+        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = RegisterUser(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
@@ -244,11 +238,40 @@ def login_user():
         return "some exeption"
 
 
-@app.route('/protectedMy',methods=['GET'])
+@app.route('/signIn', methods=['GET'])
 @jwt_required()
 def protected():
     currentUser = get_jwt_identity()
-    return jsonify(logged_in_as=currentUser)
+    if currentUser > 10:
+        return jsonify({'success': True, 'loggedInAs': currentUser})
+    return jsonify({'success': False, 'loggedInAs': currentUser})
+
+
+@app.route('/token/refresh')
+@jwt_required(refresh=True)
+def refresh_token():
+    identity = get_jwt_identity()
+    accessToken = create_access_token(identity=identity)
+    refreshToken = create_refresh_token(identity=identity)
+    return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken})
+
+
+@app.route('/personData/<int:id>')
+def get_person_data(id):
+    try:
+        model = RegisterUser.query.order_by(RegisterUser.date).all()
+        arrayOfUserData = []
+        for i in model:
+            if id == i.phoneNumber:
+                arrayOfUserData.append({
+                    'id': str(i.id),
+                    'phoneNumber': int(i.phoneNumber),
+                    'name': str(i.name),
+                    'secondName': str(i.secondName)
+                })
+        return jsonify(arrayOfUserData)
+    except:
+        return "Some exception"
 
 
 if __name__ == "__main__":
