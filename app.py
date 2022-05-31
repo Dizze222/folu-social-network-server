@@ -34,7 +34,7 @@ class PhotographerModel(db.Model):
     authorOfComments = db.Column(db.JSON, nullable=False)
 
 
-class RegisterUser(db.Model):
+class AuthModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     phoneNumber = db.Column(db.Integer, nullable=False)
     name = db.Column(db.String, nullable=False)
@@ -46,7 +46,7 @@ class RegisterUser(db.Model):
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
 
-
+'''
 @app.route("/login", methods=["POST"])
 def login():
     response = jsonify({"msg": "login successful"})
@@ -60,6 +60,7 @@ def logout():
     response = jsonify({"msg": "logout successful"})
     unset_jwt_cookies(response)
     return response
+'''
 
 
 @app.route('/posts', methods=['GET', 'POST'])
@@ -205,26 +206,27 @@ def register_user():
         name = str(request.form['name'])
         secondName = str(request.form['secondName'])
         password = str(request.form['password'])
-        print(phoneNumber, name, secondName, password)
-
+        model = AuthModel.query.order_by(AuthModel.date).all()
+        for i in model:
+            if phoneNumber == int(i.phoneNumber):
+                return jsonify({'accessToken': None, 'refreshToken': None, 'successRegister': False})
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
-        modelOfRegister = RegisterUser(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
+        modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
         db.session.commit()
-        return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken})
+        return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken, 'successRegister': True})
     except Exception as error:
         print(error)
         return "error"
 
-
-@app.route('/loginMy', methods=['POST'])
+#Login
+@app.route('/authentication', methods=['POST'])
 def login_user():
     try:
         phoneNumber = int(request.form['phoneNumber'])
         password = str(request.form['password'])
-        print(phoneNumber, password)
-        model = RegisterUser.query.order_by(RegisterUser.date).all()
+        model = AuthModel.query.order_by(AuthModel.date).all()
         for i in model:
             print(i.password)
             if password == str(i.password) and phoneNumber == int(i.phoneNumber):
@@ -237,8 +239,8 @@ def login_user():
         print(error)
         return "some exeption"
 
-
-@app.route('/signIn', methods=['GET'])
+#likely sign in account
+@app.route('/some-action-with-token', methods=['GET'])
 @jwt_required()
 def protected():
     currentUser = get_jwt_identity()
@@ -256,10 +258,10 @@ def refresh_token():
     return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken})
 
 
-@app.route('/personData/<int:id>')
+@app.route('/person_data/<int:id>')
 def get_person_data(id):
     try:
-        model = RegisterUser.query.order_by(RegisterUser.date).all()
+        model = AuthModel.query.order_by(AuthModel.date).all()
         arrayOfUserData = []
         for i in model:
             if id == i.phoneNumber:
