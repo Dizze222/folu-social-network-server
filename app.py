@@ -1,15 +1,10 @@
 from collections import defaultdict
-from ctypes import Union
-
 from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask import jsonify
 from datetime import datetime
-from datetime import timezone
 from datetime import timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
-from flask_jwt_extended import set_access_cookies
-from flask_jwt_extended import unset_jwt_cookies
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
 
