@@ -116,11 +116,14 @@ def getDataFromClient():
             comments = request.form['comments']
             authorOfComments = request.form['authorOfComments']
             testTwo[idPhotographer].append(comments)
+            print(idPhotographer)
             testAuthorOfComments[idPhotographer].append(authorOfComments)
             article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
                                         comments=testTwo, authorOfComments=testAuthorOfComments)
             db.session.add(article)
             db.session.commit()
+            print("success")
+            return "success"
         except Exception as e:
             return e
 
@@ -201,6 +204,7 @@ def register_user():
         name = str(request.form['name'])
         secondName = str(request.form['secondName'])
         password = str(request.form['password'])
+        print(phoneNumber,name,secondName,password)
         model = AuthModel.query.order_by(AuthModel.date).all()
         for i in model:
             if phoneNumber == int(i.phoneNumber):
@@ -210,10 +214,10 @@ def register_user():
         modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
         db.session.commit()
-        return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken, 'successRegister': True})
+        return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken, 'successRegister': True}])
     except Exception as error:
         print(error)
-        return "error"
+        return error
 
 #Login
 @app.route('/authentication', methods=['POST'])
