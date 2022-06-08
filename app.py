@@ -208,7 +208,7 @@ def register_user():
         model = AuthModel.query.order_by(AuthModel.date).all()
         for i in model:
             if phoneNumber == int(i.phoneNumber):
-                return jsonify({'accessToken': None, 'refreshToken': None, 'successRegister': False})
+                return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
@@ -218,6 +218,7 @@ def register_user():
     except Exception as error:
         print(error)
         return error
+
 
 #Login
 @app.route('/authentication', methods=['POST'])
@@ -239,13 +240,13 @@ def login_user():
         return "some exeption"
 
 #likely sign in account
-@app.route('/some-action-with-token', methods=['GET'])
+@app.route('/action-with-token', methods=['GET'])
 @jwt_required()
 def protected():
     currentUser = get_jwt_identity()
     if currentUser > 10:
-        return jsonify({'success': True, 'loggedInAs': currentUser})
-    return jsonify({'success': False, 'loggedInAs': currentUser})
+        return jsonify([{'success': True, 'loggedInAs': currentUser}])
+    return jsonify([{'success': None, 'loggedInAs': currentUser}])
 
 
 @app.route('/token/refresh')
@@ -254,7 +255,7 @@ def refresh_token():
     identity = get_jwt_identity()
     accessToken = create_access_token(identity=identity)
     refreshToken = create_refresh_token(identity=identity)
-    return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken})
+    return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken}])
 
 
 @app.route('/person_data/<int:id>')
