@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'my-super-secret-key'
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=5)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
@@ -62,6 +62,7 @@ def logout():
 @jwt_required()
 def getDataFromClient():
     currentUser = get_jwt_identity()
+    print(currentUser,"   -----------------")
     if currentUser > 10:
         array = []
         if request.method == 'GET':
@@ -129,7 +130,7 @@ def getDataFromClient():
             except Exception as e:
                 return e
     else:
-        return jsonify([{
+        return jsonify({
             'idPhotographer': None,
             'author': None,
             'url': None,
@@ -137,13 +138,14 @@ def getDataFromClient():
             'like': None,
             'comments': None,
             'authorOfComments': None
-        }])
+        })
 
 
 @app.route('/posts/<int:id>')
 @jwt_required()
 def visibleByData(id):
     currentUser = get_jwt_identity()
+    print(currentUser)
     if currentUser > 10:
         arrayForVisibleData = []
         articles = PhotographerModel.query.order_by(PhotographerModel.date).all()
@@ -232,7 +234,7 @@ def register_user():
         for i in model:
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
-        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
+        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=30), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
@@ -278,7 +280,7 @@ def refresh_token():
     identity = get_jwt_identity()
     accessToken = create_access_token(identity=identity)
     refreshToken = create_refresh_token(identity=identity)
-    return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken}])
+    return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken,'success': True}])
 
 
 @app.route('/person_data/<int:id>')
