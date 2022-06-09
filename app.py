@@ -59,28 +59,112 @@ def logout():
 
 
 @app.route('/posts', methods=['GET', 'POST'])
+@jwt_required()
 def getDataFromClient():
-    array = []
+    currentUser = get_jwt_identity()
+    if currentUser > 10:
+        array = []
+        if request.method == 'GET':
+            model = PhotographerModel.query.order_by(PhotographerModel.date).all()
+            for i in model:
+                array.append(
+                    {
+                        'idPhotographer': int(i.idPhotographer),
+                        'author': str(i.author),
+                        'url': str(i.url),
+                        'theme': str(i.theme),
+                        'like': int(i.like),
+                        'comments': i.comments[f'{i.idPhotographer}'],
+                        'authorOfComments': i.authorOfComments[f'{i.idPhotographer}']
+                    }
+                )
+            try:
+                for i in range(len(array) - 1):
+                    x = array[i]
+                    for j in range(i + 1, len(array)):
+                        y = array[j]
+                        if not x or not y:
+                            continue
+                        if x['idPhotographer'] == y['idPhotographer']:
+                            a = x['like'] + y['like']
 
-    if request.method == 'GET':
-        model = PhotographerModel.query.order_by(PhotographerModel.date).all()
-        for i in model:
-            array.append(
-                {
-                    'idPhotographer': int(i.idPhotographer),
-                    'author': str(i.author),
-                    'url': str(i.url),
-                    'theme': str(i.theme),
-                    'like': int(i.like),
-                    'comments': i.comments[f'{i.idPhotographer}'],
-                    'authorOfComments': i.authorOfComments[f'{i.idPhotographer}']
-                }
-            )
+                            arrayOfCommentsOne = x['comments']
+                            arrayOfCommentsTwo = y['comments']
+
+                            arrayOfAuthorOfCommentsOne = x['authorOfComments']
+                            arrayOfAuthorOfCommentsTwo = y['authorOfComments']
+
+                            if len(arrayOfAuthorOfCommentsTwo) > len(arrayOfAuthorOfCommentsOne):
+                                x['authorOfComments'] = arrayOfAuthorOfCommentsTwo
+                            if len(arrayOfCommentsTwo) > len(arrayOfCommentsOne):
+                                x['comments'] = arrayOfCommentsTwo
+                            if a > 0 or a == 0:
+                                x['like'] = a
+                            else:
+                                print("лайков слишком мало")
+                            y.clear()
+                array = [x for x in array if x]
+            except Exception as error:
+                print(error)
+            return jsonify(array)
+        if request.method == 'POST':
+            print("post")
+            try:
+                idPhotographer = int(request.form['idPhotographer'])
+                author = str(request.form['author'])
+                url = str(request.form['url'])
+                theme = str(request.form['theme'])
+                like = int(request.form['like'])
+                comments = request.form['comments']
+                authorOfComments = request.form['authorOfComments']
+                testTwo[idPhotographer].append(comments)
+                print(idPhotographer)
+                testAuthorOfComments[idPhotographer].append(authorOfComments)
+                article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
+                                            comments=testTwo, authorOfComments=testAuthorOfComments)
+                db.session.add(article)
+                db.session.commit()
+                print("success")
+                return "success"
+            except Exception as e:
+                return e
+    else:
+        return jsonify([{
+            'idPhotographer': None,
+            'author': None,
+            'url': None,
+            'theme': None,
+            'like': None,
+            'comments': None,
+            'authorOfComments': None
+        }])
+
+
+@app.route('/posts/<int:id>')
+@jwt_required()
+def visibleByData(id):
+    currentUser = get_jwt_identity()
+    if currentUser > 10:
+        arrayForVisibleData = []
+        articles = PhotographerModel.query.order_by(PhotographerModel.date).all()
+        for i in articles:
+            if id == i.idPhotographer:
+                arrayForVisibleData.append(
+                    {
+                        'idPhotographer': int(i.idPhotographer),
+                        'author': str(i.author),
+                        'url': str(i.url),
+                        'theme': str(i.theme),
+                        'like': int(i.like),
+                        'comments': i.comments[f'{i.idPhotographer}'],
+                        'authorOfComments': i.authorOfComments[f'{i.idPhotographer}']
+                    }
+                )
         try:
-            for i in range(len(array) - 1):
-                x = array[i]
-                for j in range(i + 1, len(array)):
-                    y = array[j]
+            for i in range(len(arrayForVisibleData) - 1):
+                x = arrayForVisibleData[i]
+                for j in range(i + 1, len(arrayForVisibleData)):
+                    y = arrayForVisibleData[j]
                     if not x or not y:
                         continue
                     if x['idPhotographer'] == y['idPhotographer']:
@@ -101,79 +185,18 @@ def getDataFromClient():
                         else:
                             print("лайков слишком мало")
                         y.clear()
-            array = [x for x in array if x]
+            arrayForVisibleData = [x for x in arrayForVisibleData if x]
         except Exception as error:
             print(error)
-        return jsonify(array)
-    if request.method == 'POST':
-        print("post")
-        try:
-            idPhotographer = int(request.form['idPhotographer'])
-            author = str(request.form['author'])
-            url = str(request.form['url'])
-            theme = str(request.form['theme'])
-            like = int(request.form['like'])
-            comments = request.form['comments']
-            authorOfComments = request.form['authorOfComments']
-            testTwo[idPhotographer].append(comments)
-            print(idPhotographer)
-            testAuthorOfComments[idPhotographer].append(authorOfComments)
-            article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
-                                        comments=testTwo, authorOfComments=testAuthorOfComments)
-            db.session.add(article)
-            db.session.commit()
-            print("success")
-            return "success"
-        except Exception as e:
-            return e
-
-
-@app.route('/posts/<int:id>')
-def visibleByData(id):
-    arrayForVisibleData = []
-    articles = PhotographerModel.query.order_by(PhotographerModel.date).all()
-    for i in articles:
-        if id == i.idPhotographer:
-            arrayForVisibleData.append(
-                {
-                    'idPhotographer': int(i.idPhotographer),
-                    'author': str(i.author),
-                    'url': str(i.url),
-                    'theme': str(i.theme),
-                    'like': int(i.like),
-                    'comments': i.comments[f'{i.idPhotographer}'],
-                    'authorOfComments': i.authorOfComments[f'{i.idPhotographer}']
-                }
-            )
-    try:
-        for i in range(len(arrayForVisibleData) - 1):
-            x = arrayForVisibleData[i]
-            for j in range(i + 1, len(arrayForVisibleData)):
-                y = arrayForVisibleData[j]
-                if not x or not y:
-                    continue
-                if x['idPhotographer'] == y['idPhotographer']:
-                    a = x['like'] + y['like']
-
-                    arrayOfCommentsOne = x['comments']
-                    arrayOfCommentsTwo = y['comments']
-
-                    arrayOfAuthorOfCommentsOne = x['authorOfComments']
-                    arrayOfAuthorOfCommentsTwo = y['authorOfComments']
-
-                    if len(arrayOfAuthorOfCommentsTwo) > len(arrayOfAuthorOfCommentsOne):
-                        x['authorOfComments'] = arrayOfAuthorOfCommentsTwo
-                    if len(arrayOfCommentsTwo) > len(arrayOfCommentsOne):
-                        x['comments'] = arrayOfCommentsTwo
-                    if a > 0 or a == 0:
-                        x['like'] = a
-                    else:
-                        print("лайков слишком мало")
-                    y.clear()
-        arrayForVisibleData = [x for x in arrayForVisibleData if x]
-    except Exception as error:
-        print(error)
-    return jsonify(arrayForVisibleData)
+        return jsonify(arrayForVisibleData)
+    else:
+        return jsonify([{'idPhotographer': None,
+                        'author': None,
+                        'url': None,
+                        'theme': None,
+                        'like': None,
+                        'comments': None,
+                        'authorOfComments': None}])
 
 
 @app.route('/', methods=['POST', 'GET'])
