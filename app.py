@@ -130,7 +130,7 @@ def getDataFromClient():
             except Exception as e:
                 return e
     else:
-        return jsonify({
+        return jsonify([{
             'idPhotographer': None,
             'author': None,
             'url': None,
@@ -138,7 +138,7 @@ def getDataFromClient():
             'like': None,
             'comments': None,
             'authorOfComments': None
-        })
+        }])
 
 
 @app.route('/posts/<int:id>')
@@ -252,6 +252,7 @@ def login_user():
         phoneNumber = int(request.form['phoneNumber'])
         password = str(request.form['password'])
         model = AuthModel.query.order_by(AuthModel.date).all()
+        print(phoneNumber,password)
         for i in model:
             print(i.password)
             if password == str(i.password) and phoneNumber == int(i.phoneNumber):
@@ -259,7 +260,7 @@ def login_user():
                 refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
                 return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken, 'success': True})
         else:
-            return jsonify({'accessToken': None, 'refreshToken': None, 'success': False})
+            return jsonify([{'accessToken': None, 'refreshToken': None, 'success': False}])
     except Exception as error:
         print(error)
         return "some exeption"
