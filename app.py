@@ -258,7 +258,7 @@ def login_user():
             if password == str(i.password) and phoneNumber == int(i.phoneNumber):
                 accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
                 refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
-                return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken, 'success': True})
+                return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken, 'success': True}])
         else:
             return jsonify([{'accessToken': None, 'refreshToken': None, 'success': False}])
     except Exception as error:
