@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'my-super-secret-key'
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=1)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
@@ -62,7 +62,7 @@ def logout():
 @jwt_required()
 def getDataFromClient():
     currentUser = get_jwt_identity()
-    print(currentUser,"   -----------------")
+    print(currentUser," <-token|  /posts")
     if currentUser > 10:
         array = []
         if request.method == 'GET':
@@ -109,7 +109,6 @@ def getDataFromClient():
                 print(error)
             return jsonify(array)
         if request.method == 'POST':
-            print("post")
             try:
                 idPhotographer = int(request.form['idPhotographer'])
                 author = str(request.form['author'])
@@ -119,7 +118,6 @@ def getDataFromClient():
                 comments = request.form['comments']
                 authorOfComments = request.form['authorOfComments']
                 testTwo[idPhotographer].append(comments)
-                print(idPhotographer)
                 testAuthorOfComments[idPhotographer].append(authorOfComments)
                 article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
                                             comments=testTwo, authorOfComments=testAuthorOfComments)
@@ -145,7 +143,6 @@ def getDataFromClient():
 @jwt_required()
 def visibleByData(id):
     currentUser = get_jwt_identity()
-    print(currentUser)
     if currentUser > 10:
         arrayForVisibleData = []
         articles = PhotographerModel.query.order_by(PhotographerModel.date).all()
@@ -229,14 +226,14 @@ def register_user():
         name = str(request.form['name'])
         secondName = str(request.form['secondName'])
         password = str(request.form['password'])
-        print(phoneNumber,name,secondName,password)
+        print(phoneNumber,name,secondName,password, "   /register")
         model = AuthModel.query.order_by(AuthModel.date).all()
         for i in model:
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
-        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=30), fresh=True)
+        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=1), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
-        modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
+        modelOfRegister = AuthModel(phoneNumber =phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
         db.session.commit()
         return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken, 'successRegister': True}])
@@ -252,20 +249,22 @@ def login_user():
         phoneNumber = int(request.form['phoneNumber'])
         password = str(request.form['password'])
         model = AuthModel.query.order_by(AuthModel.date).all()
-        print(phoneNumber,password)
+        print(phoneNumber,password,"   /authentication")
         for i in model:
-            print(i.password)
             if password == str(i.password) and phoneNumber == int(i.phoneNumber):
+                print("point 1")
                 accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=5), fresh=True)
                 refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
+                print("return true")
                 return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken, 'success': True}])
         else:
+            print("return false")
             return jsonify([{'accessToken': None, 'refreshToken': None, 'success': False}])
     except Exception as error:
         print(error)
         return "some exeption"
 
-#likely sign in account
+#check if the token is valid
 @app.route('/action-with-token', methods=['GET'])
 @jwt_required()
 def protected():
@@ -281,7 +280,7 @@ def refresh_token():
     identity = get_jwt_identity()
     accessToken = create_access_token(identity=identity)
     refreshToken = create_refresh_token(identity=identity)
-    return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken,'success': True}])
+    return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken,'success': True})
 
 
 @app.route('/person_data/<int:id>')
