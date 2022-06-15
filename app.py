@@ -280,6 +280,7 @@ def refresh_token():
     identity = get_jwt_identity()
     accessToken = create_access_token(identity=identity)
     refreshToken = create_refresh_token(identity=identity)
+    print(accessToken,refreshToken)
     return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken,'success': True})
 
 
@@ -299,6 +300,16 @@ def get_person_data(id):
         return jsonify(arrayOfUserData)
     except:
         return "Some exception"
+
+@app.route('/splash')
+@jwt_required()
+def splash():
+    currentUser = get_jwt_identity()
+    if currentUser > 10:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False})
+
 
 
 if __name__ == "__main__":
