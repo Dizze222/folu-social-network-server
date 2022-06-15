@@ -285,21 +285,26 @@ def refresh_token():
 
 
 @app.route('/person_data/<int:id>')
+@jwt_required()
 def get_person_data(id):
-    try:
-        model = AuthModel.query.order_by(AuthModel.date).all()
-        arrayOfUserData = []
-        for i in model:
-            if id == i.phoneNumber:
-                arrayOfUserData.append({
-                    'id': str(i.id),
-                    'phoneNumber': int(i.phoneNumber),
-                    'name': str(i.name),
-                    'secondName': str(i.secondName)
-                })
-        return jsonify(arrayOfUserData)
-    except:
-        return "Some exception"
+    identity = get_jwt_identity()
+    if identity > 10:
+        try:
+            model = AuthModel.query.order_by(AuthModel.date).all()
+            arrayOfUserData = []
+            for i in model:
+                if id == i.phoneNumber:
+                    arrayOfUserData.append({
+                        'id': str(i.id),
+                        'phoneNumber': int(i.phoneNumber),
+                        'name': str(i.name),
+                        'secondName': str(i.secondName)
+                    })
+            return jsonify(arrayOfUserData)
+        except:
+            return "Some exception"
+    else:
+        return jsonify([{'id': None,'phoneNumber' : None,'name': None,'secondName': None}])
 
 @app.route('/splash')
 @jwt_required()
