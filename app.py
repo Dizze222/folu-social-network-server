@@ -232,7 +232,7 @@ def register_user():
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=1), fresh=True)
-        refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
+        refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(minutes=2))
         modelOfRegister = AuthModel(phoneNumber =phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
         db.session.commit()
