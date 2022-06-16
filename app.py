@@ -1,5 +1,6 @@
 from collections import defaultdict
 from flask import Flask, render_template, request, redirect
+from flask_socketio import SocketIO, send
 from flask_sqlalchemy import SQLAlchemy
 from flask import jsonify
 from datetime import datetime
@@ -15,6 +16,7 @@ app.config['SECRET_KEY'] = 'my-super-secret-key'
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=1)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+socketio = SocketIO(app)
 
 
 class PhotographerModel(db.Model):
@@ -62,7 +64,7 @@ def logout():
 @jwt_required()
 def getDataFromClient():
     currentUser = get_jwt_identity()
-    print(currentUser," <-token|  /posts")
+    print(currentUser, " <-token|  /posts")
     if currentUser > 10:
         array = []
         if request.method == 'GET':
@@ -119,7 +121,8 @@ def getDataFromClient():
                 authorOfComments = request.form['authorOfComments']
                 testTwo[idPhotographer].append(comments)
                 testAuthorOfComments[idPhotographer].append(authorOfComments)
-                article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme, like=like,
+                article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme,
+                                            like=like,
                                             comments=testTwo, authorOfComments=testAuthorOfComments)
                 db.session.add(article)
                 db.session.commit()
@@ -190,12 +193,12 @@ def visibleByData(id):
         return jsonify(arrayForVisibleData)
     else:
         return jsonify([{'idPhotographer': None,
-                        'author': None,
-                        'url': None,
-                        'theme': None,
-                        'like': None,
-                        'comments': None,
-                        'authorOfComments': None}])
+                         'author': None,
+                         'url': None,
+                         'theme': None,
+                         'like': None,
+                         'comments': None,
+                         'authorOfComments': None}])
 
 
 @app.route('/', methods=['POST', 'GET'])
@@ -226,14 +229,14 @@ def register_user():
         name = str(request.form['name'])
         secondName = str(request.form['secondName'])
         password = str(request.form['password'])
-        print(phoneNumber,name,secondName,password, "   /register")
+        print(phoneNumber, name, secondName, password, "   /register")
         model = AuthModel.query.order_by(AuthModel.date).all()
         for i in model:
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=1), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
-        modelOfRegister = AuthModel(phoneNumber =phoneNumber, name=name, secondName=secondName, password=password)
+        modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
         db.session.commit()
         return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken, 'successRegister': True}])
@@ -242,14 +245,14 @@ def register_user():
         return error
 
 
-#Login
+# Login
 @app.route('/authentication', methods=['POST'])
 def login_user():
     try:
         phoneNumber = int(request.form['phoneNumber'])
         password = str(request.form['password'])
         model = AuthModel.query.order_by(AuthModel.date).all()
-        print(phoneNumber,password,"   /authentication")
+        print(phoneNumber, password, "   /authentication")
         for i in model:
             if password == str(i.password) and phoneNumber == int(i.phoneNumber):
                 print("point 1")
@@ -264,7 +267,8 @@ def login_user():
         print(error)
         return "some exeption"
 
-#check if the token is valid
+
+# check if the token is valid
 @app.route('/action-with-token', methods=['GET'])
 @jwt_required()
 def protected():
@@ -280,8 +284,8 @@ def refresh_token():
     identity = get_jwt_identity()
     accessToken = create_access_token(identity=identity)
     refreshToken = create_refresh_token(identity=identity)
-    print(accessToken,refreshToken)
-    return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken,'success': True})
+    print(accessToken, refreshToken)
+    return jsonify({'accessToken': accessToken, 'refreshToken': refreshToken, 'success': True})
 
 
 @app.route('/person_data/<int:id>')
@@ -304,7 +308,8 @@ def get_person_data(id):
         except:
             return "Some exception"
     else:
-        return jsonify([{'id': None,'phoneNumber' : None,'name': None,'secondName': None}])
+        return jsonify([{'id': None, 'phoneNumber': None, 'name': None, 'secondName': None}])
+
 
 @app.route('/splash')
 @jwt_required()
@@ -314,6 +319,10 @@ def splash():
         return jsonify()
 
 
+@socketio.event(namespace='/test')
+def my_event(data):
+    print('Received data: ', data)
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    socketio.run(app)
