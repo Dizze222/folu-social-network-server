@@ -311,9 +311,7 @@ def get_person_data(id):
 def splash():
     currentUser = get_jwt_identity()
     if currentUser > 10:
-        return jsonify(True)
-    else:
-        return jsonify(False)
+        return jsonify()
 
 
 
