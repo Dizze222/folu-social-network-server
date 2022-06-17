@@ -1,6 +1,5 @@
 from collections import defaultdict
 from flask import Flask, render_template, request, redirect
-from flask_socketio import SocketIO, send, emit
 from flask_sqlalchemy import SQLAlchemy
 from flask import jsonify
 from datetime import datetime
@@ -16,7 +15,7 @@ app.config['SECRET_KEY'] = 'my-super-secret-key'
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-socketio = SocketIO(app)
+
 
 
 class PhotographerModel(db.Model):
@@ -333,10 +332,7 @@ def splash():
         return jsonify()
 
 
-@socketio.event(namespace='/test')
-def my_event(data):
-    print('Received data: ', data)
 
 
 if __name__ == "__main__":
-    socketio.run(app)
+    app.run()
