@@ -1,6 +1,6 @@
 from collections import defaultdict
 from flask import Flask, render_template, request, redirect
-from flask_socketio import SocketIO, send
+from flask_socketio import SocketIO, send, emit
 from flask_sqlalchemy import SQLAlchemy
 from flask import jsonify
 from datetime import datetime
@@ -322,6 +322,8 @@ def splash():
 @socketio.event(namespace='/test')
 def my_event(data):
     print('Received data: ', data)
+
+
 
 
 if __name__ == "__main__":
