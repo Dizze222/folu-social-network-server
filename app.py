@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'my-super-secret-key'
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=1)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 socketio = SocketIO(app)
@@ -40,6 +40,16 @@ class AuthModel(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class UserProfileModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+
+
+
+
+
+
+
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
 
@@ -61,15 +71,16 @@ def logout():
 
 
 @app.route('/posts', methods=['GET', 'POST'])
-@jwt_required()
+#@jwt_required()
 def getDataFromClient():
-    currentUser = get_jwt_identity()
+    currentUser = 20
     print(currentUser, " <-token|  /posts")
     if currentUser > 10:
         array = []
         if request.method == 'GET':
             model = PhotographerModel.query.order_by(PhotographerModel.date).all()
             for i in model:
+                print(i.comments)
                 array.append(
                     {
                         'idPhotographer': int(i.idPhotographer),
@@ -112,6 +123,7 @@ def getDataFromClient():
             return jsonify(array)
         if request.method == 'POST':
             try:
+                model = PhotographerModel.query.order_by(PhotographerModel.date).all()
                 idPhotographer = int(request.form['idPhotographer'])
                 author = str(request.form['author'])
                 url = str(request.form['url'])
@@ -119,6 +131,7 @@ def getDataFromClient():
                 like = int(request.form['like'])
                 comments = request.form['comments']
                 authorOfComments = request.form['authorOfComments']
+                print(authorOfComments,comments)
                 testTwo[idPhotographer].append(comments)
                 testAuthorOfComments[idPhotographer].append(authorOfComments)
                 article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme,
@@ -126,7 +139,8 @@ def getDataFromClient():
                                             comments=testTwo, authorOfComments=testAuthorOfComments)
                 db.session.add(article)
                 db.session.commit()
-                print("success")
+                for i in model:
+                    print(i.comments)
                 return "success"
             except Exception as e:
                 return e
@@ -234,7 +248,7 @@ def register_user():
         for i in model:
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
-        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=1), fresh=True)
+        accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=30), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
         db.session.add(modelOfRegister)
@@ -322,8 +336,6 @@ def splash():
 @socketio.event(namespace='/test')
 def my_event(data):
     print('Received data: ', data)
-
-
 
 
 if __name__ == "__main__":
