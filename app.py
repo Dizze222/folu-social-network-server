@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask import jsonify
 from datetime import datetime
+import random
 from datetime import timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 from flask_jwt_extended import get_jwt_identity
@@ -39,42 +40,48 @@ class AuthModel(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-class UserProfileModel(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
 
-
-
-
-
-
+class ProfileModel(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    image = db.Column(db.String,nullable=False)
+    bio = db.Column(db.String,nullable=False)
 
 
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
 
-'''
-@app.route("/login", methods=["POST"])
-def login():
-    response = jsonify({"msg": "login successful"})
-    access_token = create_access_token(identity="example_user")
-    set_access_cookies(response, access_token)
-    return response
+@app.route('/profile',methods=['GET',"POST"])
+@jwt_required()
+def getUserProfile():
+    currentUser = get_jwt_identity()
+    if currentUser > 1:
+        if request.method == 'GET':
+            arrayProfile = []
+            userProfileModel = ProfileModel.query.order_by(ProfileModel.date).all()
 
-
-@app.route("/logout", methods=["POST"])
-def logout():
-    response = jsonify({"msg": "logout successful"})
-    unset_jwt_cookies(response)
-    return response
-'''
+            for i in userProfileModel:
+                arrayProfile.append(
+                    {
+                        'image': str(i.image),
+                        'dio': str(i.dio)
+                    }
+                )
+            return jsonify(arrayProfile)
+        if request.method == 'POST':
+            image = request.form['image']
+            profile = ProfileModel(image=image)
+            db.session.add(profile)
+            db.session.commit()
+            return "success"
 
 
 @app.route('/posts', methods=['GET', 'POST'])
-#@jwt_required()
+@jwt_required()
 def getDataFromClient():
-    currentUser = 20
+    currentUser = get_jwt_identity()
     print(currentUser, " <-token|  /posts")
-    if currentUser > 10:
+    if currentUser > 1:
         array = []
         if request.method == 'GET':
             model = PhotographerModel.query.order_by(PhotographerModel.date).all()
@@ -130,7 +137,7 @@ def getDataFromClient():
                 like = int(request.form['like'])
                 comments = request.form['comments']
                 authorOfComments = request.form['authorOfComments']
-                print(authorOfComments,comments)
+                print(authorOfComments, comments)
                 testTwo[idPhotographer].append(comments)
                 testAuthorOfComments[idPhotographer].append(authorOfComments)
                 article = PhotographerModel(idPhotographer=idPhotographer, author=author, url=url, theme=theme,
@@ -138,8 +145,6 @@ def getDataFromClient():
                                             comments=testTwo, authorOfComments=testAuthorOfComments)
                 db.session.add(article)
                 db.session.commit()
-                for i in model:
-                    print(i.comments)
                 return "success"
             except Exception as e:
                 return e
@@ -159,7 +164,7 @@ def getDataFromClient():
 @jwt_required()
 def visibleByData(id):
     currentUser = get_jwt_identity()
-    if currentUser > 10:
+    if currentUser > 1:
         arrayForVisibleData = []
         articles = PhotographerModel.query.order_by(PhotographerModel.date).all()
         for i in articles:
@@ -286,7 +291,7 @@ def login_user():
 @jwt_required()
 def protected():
     currentUser = get_jwt_identity()
-    if currentUser > 10:
+    if currentUser > 1:
         return jsonify([{'success': True, 'loggedInAs': currentUser}])
     return jsonify([{'success': None, 'loggedInAs': currentUser}])
 
@@ -305,7 +310,7 @@ def refresh_token():
 @jwt_required()
 def get_person_data(id):
     identity = get_jwt_identity()
-    if identity > 10:
+    if identity > 1:
         try:
             model = AuthModel.query.order_by(AuthModel.date).all()
             arrayOfUserData = []
