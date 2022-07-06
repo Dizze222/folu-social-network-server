@@ -259,12 +259,13 @@ def register_user():
         model = AuthModel.query.order_by(AuthModel.date).all()
         # userOfProfileModel = ProfileModel.quer.oreder_by(ProfileModel.date).all()
         for i in model:
+            print(i.phoneNumber)
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=30), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
-        modelOfUserProfile = ProfileModel(name=name, secondName=secondName, idOfUser=phoneNumber)
+        modelOfUserProfile = ProfileModel(name=name, secondName=secondName, image="empty",idOfUser=phoneNumber,bio="no bio")
         db.session.add(modelOfRegister)
         db.session.add(modelOfUserProfile)
         db.session.commit()
