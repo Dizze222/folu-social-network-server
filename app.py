@@ -60,9 +60,6 @@ def getUserProfile():
     if currentUser > 1:
         if request.method == 'GET':
             arrayProfile = []
-            profile = ProfileModel(idOfUser=currentUser)
-            db.session.add(profile)
-            db.session.commit()
             userProfileModel = ProfileModel.query.order_by(ProfileModel.date).all()
             for i in userProfileModel:
                 if int(currentUser) == int(i.idOfUser):
@@ -76,12 +73,19 @@ def getUserProfile():
                     )
             return jsonify(arrayProfile)
         if request.method == 'POST':
-            bio = request.form['bio']
-            image = request.form['image']
-            profile = ProfileModel(image=image, bio=bio, idOfUser=currentUser)
-            db.session.add(profile)
-            db.session.commit()
-            return "success"
+            try:
+                image = request.form['image']
+                userProfileModel = ProfileModel.query.order_by(ProfileModel.date).all()
+                for i in userProfileModel:
+                    if int(i.idOfUser) == int(currentUser):
+                        profile = ProfileModel(image=image, bio="", idOfUser=currentUser, name=i.name, secondName=i.secondName)
+                    else:
+                        profile = ProfileModel(image=image, bio="", idOfUser=currentUser, name="", secondName="")
+                db.session.add(profile)
+                db.session.commit()
+                return "success"
+            except Exception as e:
+                print(e)
 
 
 @app.route('/posts', methods=['GET', 'POST'])
