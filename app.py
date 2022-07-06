@@ -18,7 +18,6 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
 
-
 class PhotographerModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     theme = db.Column(db.String, nullable=False)
@@ -40,37 +39,46 @@ class AuthModel(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-
 class ProfileModel(db.Model):
-    id = db.Column(db.Integer,primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    secondName = db.Column(db.String, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
-    image = db.Column(db.String,nullable=False)
-    bio = db.Column(db.String,nullable=False)
+    image = db.Column(db.String, nullable=False)
+    bio = db.Column(db.String, nullable=False)
+    idOfUser = db.Column(db.Integer, nullable=False)
 
 
 testTwo = defaultdict(list)
 testAuthorOfComments = defaultdict(list)
 
-@app.route('/profile',methods=['GET',"POST"])
+
+@app.route('/profile', methods=['GET', "POST"])
 @jwt_required()
 def getUserProfile():
     currentUser = get_jwt_identity()
     if currentUser > 1:
         if request.method == 'GET':
             arrayProfile = []
+            profile = ProfileModel(idOfUser=currentUser)
+            db.session.add(profile)
+            db.session.commit()
             userProfileModel = ProfileModel.query.order_by(ProfileModel.date).all()
-
             for i in userProfileModel:
-                arrayProfile.append(
-                    {
-                        'image': str(i.image),
-                        'dio': str(i.dio)
-                    }
-                )
+                if int(currentUser) == int(i.idOfUser):
+                    arrayProfile.append(
+                        {
+                            'name': str(i.name),
+                            'secondName': str(i.secondName),
+                            'bio': str(i.bio),
+                            'image': str(i.image)
+                        }
+                    )
             return jsonify(arrayProfile)
         if request.method == 'POST':
+            bio = request.form['bio']
             image = request.form['image']
-            profile = ProfileModel(image=image)
+            profile = ProfileModel(image=image, bio=bio, idOfUser=currentUser)
             db.session.add(profile)
             db.session.commit()
             return "success"
@@ -249,13 +257,16 @@ def register_user():
         password = str(request.form['password'])
         print(phoneNumber, name, secondName, password, "   /register")
         model = AuthModel.query.order_by(AuthModel.date).all()
+        # userOfProfileModel = ProfileModel.quer.oreder_by(ProfileModel.date).all()
         for i in model:
             if phoneNumber == int(i.phoneNumber):
                 return jsonify([{'accessToken': None, 'refreshToken': None, 'successRegister': False}])
         accessToken = create_access_token(identity=phoneNumber, expires_delta=timedelta(minutes=30), fresh=True)
         refreshToken = create_refresh_token(identity=phoneNumber, expires_delta=timedelta(days=30))
         modelOfRegister = AuthModel(phoneNumber=phoneNumber, name=name, secondName=secondName, password=password)
+        modelOfUserProfile = ProfileModel(name=name, secondName=secondName, idOfUser=phoneNumber)
         db.session.add(modelOfRegister)
+        db.session.add(modelOfUserProfile)
         db.session.commit()
         return jsonify([{'accessToken': accessToken, 'refreshToken': refreshToken, 'successRegister': True}])
     except Exception as error:
@@ -335,8 +346,6 @@ def splash():
     currentUser = get_jwt_identity()
     if currentUser > 10:
         return jsonify()
-
-
 
 
 if __name__ == "__main__":
